@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   SafeAreaView,
   View,
@@ -12,16 +12,18 @@ import {
   StyleSheet,
   Text,
   Animated,
-  Easing,
+  LayoutAnimation,
+  TouchableWithoutFeedback,
 } from "react-native";
 import { Divider } from "@rneui/themed";
 import { Colors, Fonts, Sizes } from "../../constants/styles";
 import { URLS } from "../../constants/config";
-import { MaterialIcons, Feather } from "@expo/vector-icons";
+import { MaterialIcons, Feather, Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { Snackbar } from "react-native-paper";
 import MovieWatchlist from "../../components/releaseInfo";
 import { TabView, SceneMap, TabBar } from "react-native-tab-view";
+import HorizontalDivider from "../../components/horizontalDivider";
 
 const { width, height } = Dimensions.get("window");
 
@@ -218,56 +220,100 @@ Array(movieWatchlist.length + 1)
   });
 
 const FirstRoute = () => (
-  <View style={[styles.scene, { backgroundColor: "#ff4081" }]}>
+  <View style={[styles.scene, { backgroundColor: "transparent" }]}>
     <Text>Cast |</Text>
   </View>
 );
 
 const SecondRoute = () => (
-  <View style={[styles.scene, { backgroundColor: "#673ab7" }]}>
+  <View style={[styles.scene, { backgroundColor: "transparent" }]}>
     <Text>Crew</Text>
     <Divider orientation="vertical" width={50} color="#2089dc" />
   </View>
 );
 
 const ThirdRoute = () => (
-  <View style={[styles.scene, { backgroundColor: "#3f51b5" }]}>
+  <View style={[styles.scene, { backgroundColor: "transparent" }]}>
     <Text>Details</Text>
     <Divider orientation="vertical" width={50} color="#2089dc" />
   </View>
 );
 
 const FourthRoute = () => (
-  <View style={[styles.scene, { backgroundColor: "#2196f3" }]}>
+  <View style={[styles.scene, { backgroundColor: "transparent" }]}>
     <Text>Genres</Text>
   </View>
 );
 
 const renderScene = SceneMap({
+  release: FirstRoute,
   cast: FirstRoute,
   crew: SecondRoute,
   details: ThirdRoute,
   genres: FourthRoute,
 });
-
-function TabViewExample() {
+const TabViewExample = ({ data }) => {
   const [index, setIndex] = React.useState(0);
   const [routes] = React.useState([
+    { key: "release", title: "Releases" },
     { key: "cast", title: "Cast" },
     { key: "crew", title: "Crew" },
     { key: "details", title: "Details" },
     { key: "genres", title: "Genres" },
   ]);
 
+  const renderLabel = ({ route, focused }) => (
+    <Text
+      style={[
+        styles.tabLabel,
+        focused ? styles.focusedTab : styles.unfocusedTab,
+      ]}
+      numberOfLines={1}
+      ellipsizeMode="tail" // Add an ellipsis at the end if the text is too long
+    >
+      {route.title}
+    </Text>
+  );
+
   const renderTabBar = (props) => (
-    // <View style={styles.tabBarBackground}>
     <TabBar
       {...props}
+      navigationState={{ index, routes }}
+      renderLabel={renderLabel}
       indicatorStyle={{ backgroundColor: "white" }}
-      style={{ backgroundColor: "black" }}
-      // No indicator
+      style={{
+        backgroundColor: "#0e0e10",
+        justifyContent: "center",
+        height: 38,
+        marginBottom: 10,
+        borderRadius: 5,
+      }}
+      labelStyle={styles.tabLabel}
+      renderIndicator={(props) => {
+        // Destructure the width of the layout and the navigationState
+        const { width } = props.layout;
+        const { navigationState } = props;
+
+        // Calculate the width for the individual tab
+        const tabWidth = width / navigationState.routes.length;
+
+        // Calculate the left position of the indicator
+        const translateX = props.position.interpolate({
+          inputRange: [0, navigationState.routes.length - 1],
+          outputRange: [0, width - tabWidth],
+        });
+
+        // Custom indicator style
+        return (
+          <Animated.View
+            style={[
+              styles.indicator,
+              { width: tabWidth, transform: [{ translateX }] },
+            ]}
+          />
+        );
+      }}
     />
-    // </View>
   );
 
   return (
@@ -275,49 +321,156 @@ function TabViewExample() {
       navigationState={{ index, routes }}
       renderScene={renderScene}
       onIndexChange={setIndex}
-      initialLayout={{
-        height: 100,
-        width: width,
-      }}
       renderTabBar={renderTabBar}
+      swipeEnabled={false}
       style={{
-        borderRadius: 20,
         margin: 0,
-        paddingLeft: 8,
-        paddingRight: 8,
         marginBottom: 10,
+        marginLeft: 15,
+        marginRight: 15,
+        height: 38,
       }}
     />
   );
-}
+};
 
 const MovieDetailScreen = ({ route, navigation }) => {
   const { data } = route.params;
+  const scrollY = new Animated.Value(0);
+  const statusBarOpacity = scrollY.interpolate({
+    inputRange: [0, height / 3.6], // Assuming height / 3.6 is the height of your poster
+    outputRange: [0, 1],
+    extrapolate: "clamp",
+  });
+  const initialBackArrowOpacity = scrollY.interpolate({
+    inputRange: [0, height / 3.6], // Adjust based on the height of your image
+    outputRange: [1, 0],
+    extrapolate: "clamp",
+  });
+  const popularMoviesEndpointSufix = `/movie/${data.id}?language=en-US`;
   const [state, setState] = useState({
     inWatchlist: false,
     showSnackBar: false,
   });
-
+  const [movieDetail, setMovieDetail] = useState({});
   const updateState = (data) => setState((state) => ({ ...state, ...data }));
-
   const { inWatchlist, showSnackBar } = state;
+
+  useEffect(() => {
+    fetch(URLS.TMDB_API + popularMoviesEndpointSufix, {
+      method: "GET",
+      headers: {
+        Authorization:
+          "Bearer eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiI4NDUzN2ZiN2U0N2VlMDI2Y2VhMTMwN2NmZTc2MzkzOSIsInN1YiI6IjY1ODY0MGQ1NWFiYTMyNjc1OWI5MDQwNiIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.Uz31XqIIjE5CSCUKl4v1eE21rgjz8j6xzbL9em2_Sxk",
+        accept: "application/json",
+      },
+    })
+      .then((response) => response.json()) // Convert the response to JSON
+      .then((json) => {
+        setMovieDetail(json);
+      }) // Update the state with the data
+      .catch((error) => console.error(error)); // Handle any errors
+  }, []);
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: Colors.bodyBackColor }}>
-      <StatusBar translucent={true} backgroundColor={"transparent"} />
+      <StatusBar
+        translucent={true}
+        backgroundColor={"transparent"}
+        barStyle="light-content"
+      />
+      {/* Back Arrow set up with status bar */}
+      <Animated.View
+        style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          right: 0,
+          height: StatusBar.currentHeight + 100, // Adjust the height as needed
+          backgroundColor: "black",
+          opacity: statusBarOpacity,
+          flexDirection: "row",
+          alignItems: "center",
+          paddingTop: StatusBar.currentHeight,
+          justifyContent: "center",
+          zIndex: 10,
+        }}
+      >
+        <TouchableOpacity
+          activeOpacity={0.7}
+          onPress={() => navigation.pop()}
+          style={styles.backArrowWrapStyle}
+        >
+          <MaterialIcons
+            name="arrow-back-ios"
+            color={Colors.whiteColor}
+            size={24}
+            style={{
+              paddingHorizontal: 10,
+            }}
+          />
+        </TouchableOpacity>
+        <Text
+          style={[
+            {
+              ...Fonts.whiteColor20SemiBold,
+              top: Sizes.fixPadding * 2.0 + StatusBar.currentHeight,
+            },
+          ]}
+          numberOfLines={1}
+          ellipsizeMode="tail"
+        >
+          {data.original_title}
+        </Text>
+      </Animated.View>
+
+      {/* Initial Back Arrow set up */}
+      <Animated.View
+        style={{
+          position: "absolute",
+          top: StatusBar.currentHeight,
+          left: 1,
+          opacity: initialBackArrowOpacity, // Apply the inverse opacity here
+          zIndex: 10,
+        }}
+      >
+        <TouchableOpacity
+          activeOpacity={0.7}
+          onPress={() => navigation.pop()}
+          style={styles.backArrowWrapStyle}
+        >
+          <MaterialIcons
+            name="arrow-back-ios"
+            color={Colors.whiteColor}
+            size={24}
+            style={{
+              paddingHorizontal: 10,
+            }}
+          />
+        </TouchableOpacity>
+      </Animated.View>
+
       <View style={{ flex: 1 }}>
-        {posterWithBackArrow(data)}
         <View style={{ flex: 1, marginTop: -height / 4.5 }}>
-          <ScrollView
-            contentContainerStyle={{ paddingTop: height / 8.0 }}
+          <Animated.ScrollView
+            contentContainerStyle={{ paddingTop: height / 4.5 }}
             showsVerticalScrollIndicator={false}
+            onScroll={Animated.event(
+              [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+              { useNativeDriver: true }
+            )}
+            scrollEventThrottle={16}
           >
+            {posterWithBackArrow(data)}
             {moviewInfo(data)}
-            <TabViewExample></TabViewExample>
+            <HorizontalDivider />
+            <TabViewExample data={data}></TabViewExample>
             <MovieWatchlist data={data}></MovieWatchlist>
+            <HorizontalDivider />
             {clipsInfo()}
+            <HorizontalDivider />
             {reviewsInfo()}
-          </ScrollView>
+          </Animated.ScrollView>
         </View>
       </View>
       <Snackbar
@@ -451,10 +604,21 @@ const MovieDetailScreen = ({ route, navigation }) => {
   }
 
   function moviewInfo(movieData) {
+    const [isExpanded, setIsExpanded] = useState(false);
+    const [textHeight, setTextHeight] = useState(0);
+    const MAX_HEIGHT = 50; // Maximum collapsed height of the text
+    const GRADIENT_HEIGHT = 30; // Height of the gradient blur
+
+    const toggleExpansion = () => {
+      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+      setIsExpanded(!isExpanded);
+    };
+
     return (
       <View
         style={{
-          marginVertical: Sizes.fixPadding,
+          marginTop: Sizes.fixPadding - 20,
+          marginBottom: Sizes.fixPadding,
           marginHorizontal: Sizes.fixPadding * 2.0,
         }}
       >
@@ -465,13 +629,38 @@ const MovieDetailScreen = ({ route, navigation }) => {
             justifyContent: "space-between",
           }}
         >
+          <View
+            style={{
+              alignItems: "center",
+              justifyContent: "space-between",
+            }}
+          >
+            <Text
+              style={[
+                { ...Fonts.whiteColor22Bold },
+                { width: 200, flexWrap: "wrap", paddingBottom: 20 },
+              ]}
+            >
+              {movieData.original_title}
+            </Text>
+            <Text
+              style={[
+                { ...Fonts.geryColor12Regular },
+                { width: 200, flexWrap: "wrap" },
+              ]}
+            >
+              {"2023"}
+              <Text style={{ color: "#445566" }}> • </Text>
+              {"DIRECTED BY"}
+            </Text>
+          </View>
           <ImageBackground
             source={{ uri: URLS.TMDB_IMAGE_URL + data.poster_path }}
             style={styles.imageStyle}
             borderRadius={Sizes.fixPadding - 5.0}
           ></ImageBackground>
         </View>
-        <View
+        {/* <View
           style={{
             flexDirection: "row",
             alignItems: "center",
@@ -493,8 +682,8 @@ const MovieDetailScreen = ({ route, navigation }) => {
             />
             <Feather name="download" size={20} color={Colors.whiteColor} />
           </View>
-        </View>
-        <Text
+        </View> */}
+        {/* <Text
           style={{
             marginTop: Sizes.fixPadding,
             lineHeight: 24.0,
@@ -502,7 +691,7 @@ const MovieDetailScreen = ({ route, navigation }) => {
           }}
         >
           {movieData.release_date} • 13+ • Action & Adventure • 1h 30min
-        </Text>
+        </Text> */}
         <View
           style={{
             marginTop: Sizes.fixPadding - 5.0,
@@ -511,9 +700,34 @@ const MovieDetailScreen = ({ route, navigation }) => {
         >
           {showRating({ number: 5.0 })}
         </View>
-        <Text style={{ ...Fonts.whiteColor15Regular }}>
-          {movieData.overview}
-        </Text>
+        <TouchableWithoutFeedback onPress={toggleExpansion}>
+          <View>
+            <Text
+              numberOfLines={isExpanded ? undefined : 3}
+              style={{ ...Fonts.whiteColor15Regular }}
+              onLayout={(event) => {
+                if (!isExpanded) {
+                  const { height } = event.nativeEvent.layout;
+                  setTextHeight(height);
+                }
+              }}
+            >
+              {movieData.overview}
+            </Text>
+            {!isExpanded && textHeight > MAX_HEIGHT && (
+              <LinearGradient
+                colors={["rgba(24, 28, 32, 0.1)", "#181c20"]} // Adjust colors for the blur effect
+                style={{
+                  position: "absolute",
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  height: GRADIENT_HEIGHT, // Adjust gradient height
+                }}
+              />
+            )}
+          </View>
+        </TouchableWithoutFeedback>
       </View>
     );
   }
@@ -605,47 +819,28 @@ const MovieDetailScreen = ({ route, navigation }) => {
   }
 
   function posterWithBackArrow(movieData) {
+    const scale = scrollY.interpolate({
+      inputRange: [-100, 0, 50],
+      outputRange: [2, 1.6, 1.45],
+      extrapolate: "clamp",
+    });
     return (
-      <ImageBackground
-        source={{ uri: URLS.TMDB_IMAGE_URL + data.backdrop_path }}
-        style={[
-          {
-            height: height / 3.6 + StatusBar.currentHeight,
-            justifyContent: "center",
-          },
-        ]}
-      >
-        <LinearGradient
-          colors={gradientColorsList}
-          style={{ flex: 1, justifyContent: "center" }}
+      <Animated.View style={{ transform: [{ scale }] }}>
+        <ImageBackground
+          source={{ uri: URLS.TMDB_IMAGE_URL + data.backdrop_path }}
+          style={[
+            {
+              height: height / 3.6 + StatusBar.currentHeight,
+              justifyContent: "center",
+            },
+          ]}
         >
-          <TouchableOpacity
-            activeOpacity={0.7}
-            onPress={() => navigation.pop()}
-            style={styles.backArrowWrapStyle}
-          >
-            <MaterialIcons
-              name="arrow-back-ios"
-              color={Colors.whiteColor}
-              size={15}
-              style={{
-                paddingHorizontal: 10,
-              }}
-            />
-          </TouchableOpacity>
-          <TouchableOpacity
-            activeOpacity={0.9}
-            onPress={() => navigation.push("Movie")}
-            // style={styles.playArrowWrapStyle}
-          >
-            {/* <MaterialIcons
-              name="play-arrow"
-              size={24}
-              color={Colors.whiteColor}
-            /> */}
-          </TouchableOpacity>
-        </LinearGradient>
-      </ImageBackground>
+          <LinearGradient
+            colors={gradientColorsList}
+            style={{ flex: 1, justifyContent: "center", marginTop: -100 }}
+          ></LinearGradient>
+        </ImageBackground>
+      </Animated.View>
     );
   }
 };
@@ -668,12 +863,13 @@ const styles = StyleSheet.create({
   },
   backArrowWrapStyle: {
     position: "absolute",
-    top: Sizes.fixPadding * 2.0 + StatusBar.currentHeight,
-    left: Sizes.fixPadding * 1.0,
+    top: Sizes.fixPadding * 5.0 + StatusBar.currentHeight,
+    left: Sizes.fixPadding * 2.0,
+    zIndex: 10,
     backgroundColor: "rgba(0, 0, 0, 0.5)", // Black background with opacity
     borderRadius: 20, // Circular shape
-    width: 30, // Adjust width as needed
-    height: 30, // Adjust height as needed
+    width: 35, // Adjust width as needed
+    height: 35, // Adjust height as needed
     alignItems: "center", // Center the icon horizontally
     justifyContent: "center", // Center the icon vertically
   },
@@ -707,12 +903,12 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   imageStyle: {
-    width: 100.0,
-    height: 150.0,
+    width: 120.0,
+    height: 170.0,
     alignItems: "center",
     justifyContent: "center",
   },
-  scene: { flex: 1 },
+  scene: { flex: 1, height: 100 },
   tabBarBackground: {
     backgroundColor: "#0e0e10", // Background color of the entire tab bar
     padding: 2,
@@ -750,19 +946,29 @@ const styles = StyleSheet.create({
   },
   tabLabel: {
     flex: 1,
+    fontSize: width * 0.029,
     margin: 0, // Margin between tabs
+    padding: 0,
+    fontWeight: "bold",
+    textTransform: "none",
     alignItems: "center",
     justifyContent: "center",
-    alignContent: "top",
+    alignContent: "center",
     borderRadius: 20, // Match with tab borderRadius if using
   },
-  indicator: {
-    backgroundColor: "#ffffff", // Hide the default indicator
+  focusedTab: {
+    // Styling for focused tab label
+    color: "#fff",
   },
-  verticleLine: {
-    height: "100%",
-    width: 1,
-    backgroundColor: "#909090",
+  unfocusedTab: {
+    // Styling for unfocused tab label
+    color: "#8899aa",
+  },
+  indicator: {
+    position: "absolute",
+    height: "100%", // Covers the full height of the tab bar
+    backgroundColor: "rgba(102,119,135,255)", // Customizable color and opacity
+    borderRadius: 5, // Optional: if you want rounded corners
   },
 });
 

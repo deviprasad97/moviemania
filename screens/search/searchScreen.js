@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   SafeAreaView,
   View,
@@ -118,7 +118,12 @@ const SearchScreen = ({ navigation }) => {
   const [searchResults, setSearchResults] = useState([{ id: "1" }]);
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearchResultsViewEnabled, toggleSearchResultsView] = useState(false);
-  const [selectedChipKey, setSelectedChipKey] = useState(null);
+  const [selectedChipKey, setSelectedChipKey] = useState(0);
+
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const searchAnimation = useRef(new Animated.Value(0)).current;
+  const searchInputRef = useRef(null);
+  const chipsAnimation = useRef(new Animated.Value(0)).current;
 
   const [chipData, setChipData] = useState([
     { key: 0, label: "Angular" },
@@ -340,8 +345,13 @@ const SearchScreen = ({ navigation }) => {
     setSearchQuery(text);
   }
 
-  function handleChipPress(chipKey) {
+  function handleChipPress(chipKey, event) {
+    event.preventDefault(); // Prevent default behavior
     setSelectedChipKey(chipKey);
+    // Forcefully focus the TextInput if it's not already focused
+    if (searchInputRef.current && !isSearchFocused) {
+      searchInputRef.current.focus();
+    }
   }
 
   function renderChip(chip) {
@@ -351,7 +361,9 @@ const SearchScreen = ({ navigation }) => {
       <TouchableOpacity
         key={chip.key}
         style={chipStyle}
-        onPress={() => handleChipPress(chip.key)}
+        onPress={(event) => handleChipPress(chip.key, event)}
+        onStartShouldSetResponder={() => true}
+        onResponderTerminationRequest={() => false}
       >
         <Text style={styles.chipTextStyle}>{chip.label}</Text>
       </TouchableOpacity>
@@ -359,19 +371,67 @@ const SearchScreen = ({ navigation }) => {
   }
 
   function searchInfo() {
+    const animateSearchFocus = () => {
+      Animated.timing(searchAnimation, {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: false, // Change to true if not animating layout properties
+      }).start();
+    };
+
+    const animateSearchBlur = () => {
+      Animated.timing(searchAnimation, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: false, // Change to true if not animating layout properties
+      }).start();
+    };
+    const animateChipsIn = () => {
+      Animated.timing(chipsAnimation, {
+        toValue: 1,
+        duration: 600,
+        useNativeDriver: true,
+      }).start();
+    };
+
+    const animateChipsOut = () => {
+      Animated.timing(chipsAnimation, {
+        toValue: 0,
+        duration: 600,
+        useNativeDriver: true,
+      }).start();
+    };
+    const searchInputStyle = searchAnimation.interpolate({
+      inputRange: [0, 1],
+      outputRange: [0, -50], // Adjust these values to control the animation
+    });
     return (
-      <View
+      <Animated.View
         style={{
           backgroundColor: Colors.blackColor,
           padding: Sizes.fixPadding * 2.0,
+          transform: [{ translateY: searchInputStyle }],
         }}
       >
-        <Text style={{ ...Fonts.whiteColor22Bold }}>Search</Text>
+        {!isSearchFocused && (
+          <Animated.Text
+            style={{
+              ...Fonts.whiteColor22Bold,
+              opacity: searchAnimation.interpolate({
+                inputRange: [0, 1],
+                outputRange: [1, 0],
+              }),
+            }}
+          >
+            Search
+          </Animated.Text>
+        )}
         <View style={styles.searchFieldWrapStyle}>
           <MaterialIcons name="search" color={Colors.primaryColor} size={22} />
           <TextInput
             placeholder="Search Tv shows, Movies & Series..."
             placeholderTextColor={Colors.grayColor}
+            ref={searchInputRef}
             style={{
               height: 20.0,
               ...Fonts.grayColor15Regular,
@@ -385,16 +445,51 @@ const SearchScreen = ({ navigation }) => {
             onSubmitEditing={handleSearch}
             returnKeyType="search"
             value={searchQuery}
+            onFocus={() => {
+              setIsSearchFocused(true);
+              toggleSearchResultsView(true);
+              animateSearchFocus();
+              animateChipsIn();
+            }}
+            onBlur={() => {
+              setIsSearchFocused(false);
+              animateSearchBlur();
+              animateChipsOut();
+            }}
           />
+          {isSearchFocused && (
+            <TouchableOpacity
+              onPress={() => {
+                setIsSearchFocused(false);
+                toggleSearchResultsView(false);
+                if (searchInputRef.current) {
+                  searchInputRef.current.blur(); // This will remove the focus from the TextInput
+                }
+                // Additional logic to unfocus the TextInput if needed
+              }}
+              style={{ marginLeft: Sizes.fixPadding }}
+            >
+              <Text style={{ ...Fonts.primaryColor15Medium }}>Cancel</Text>
+            </TouchableOpacity>
+          )}
         </View>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={{ marginTop: Sizes.fixPadding }}
-        >
-          {chipData.map(renderChip)}
-        </ScrollView>
-      </View>
+        {isSearchFocused && (
+          <Animated.View
+            style={{
+              marginTop: Sizes.fixPadding,
+              opacity: chipsAnimation,
+            }}
+          >
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={{ marginTop: Sizes.fixPadding }}
+            >
+              {chipData.map(renderChip)}
+            </ScrollView>
+          </Animated.View>
+        )}
+      </Animated.View>
     );
   }
 };

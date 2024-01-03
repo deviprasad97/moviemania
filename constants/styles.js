@@ -40,6 +40,11 @@ export const Fonts = {
     fontSize: 12,
     fontFamily: "Mukta_Regular",
   },
+  geryColor12Regular: {
+    color: "#98a9ba",
+    fontSize: 12,
+    fontFamily: "Mukta_Regular",
+  },
 
   whiteColor14Regular: {
     color: "#FFFFFF",
@@ -184,7 +189,7 @@ export const Colors = {
   whiteColor: "#FFFFFF",
   grayColor: "#949494",
   lightGrayColor: "#C4C4C4",
-  bodyBackColor: "#121212",
+  bodyBackColor: "#181b20",
   yellowColor: "#FFAC33",
 };
 

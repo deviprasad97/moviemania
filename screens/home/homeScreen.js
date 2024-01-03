@@ -497,7 +497,7 @@ const HomeScreen = ({ navigation }) => {
           name="notifications-outline"
           size={24}
           color={Colors.whiteColor}
-          onPress={() => navigation.push("Notification")}
+          onPress={() => navigation.push("BarCodeScanner")}
         />
       </View>
     );

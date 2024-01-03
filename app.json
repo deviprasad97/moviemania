@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "Media Mania",
-    "slug": "rn-StreamItVideoStreaming",
+    "slug": "movie-mania",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -17,6 +17,14 @@
       "buildNumber": "1.0.0",
       "supportsTablet": true
     },
+    "plugins": [
+      [
+        "expo-barcode-scanner",
+        {
+          "cameraPermission": "Allow $(PRODUCT_NAME) to access camera."
+        }
+      ]
+    ],
     "android": {
       "package": "com.render.rnstreamit",
       "versionCode": 2,
@@ -27,6 +35,12 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "29197f0d-a7fd-499c-ab91-cb525e393703"
+      }
+    },
+    "owner": "deviprasad97"
   }
 }

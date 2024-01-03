@@ -28,6 +28,7 @@ import onboardingScreen from "./screens/onboarding/onboardingScreen";
 import loginScreen from "./screens/auth/loginScreen";
 import registerScreen from "./screens/auth/registerScreen";
 import verificationScreen from "./screens/auth/verificationScreen";
+import MovieBarCodeScanner from "./screens/barCodeScanner";
 
 LogBox.ignoreAllLogs();
 
@@ -55,6 +56,7 @@ const App = () => {
           options={{ ...TransitionPresets.DefaultTransition }}
         />
         <Stack.Screen name="Register" component={registerScreen} />
+        <Stack.Screen name="BarCodeScanner" component={MovieBarCodeScanner} />
         <Stack.Screen name="Verification" component={verificationScreen} />
         <Stack.Screen
           name="BottomTabBar"

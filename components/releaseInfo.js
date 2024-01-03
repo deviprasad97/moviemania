@@ -1,12 +1,6 @@
 import React, { useState, useEffect } from "react";
 import {
-  SafeAreaView,
   View,
-  StatusBar,
-  Image,
-  Dimensions,
-  FlatList,
-  ScrollView,
   ImageBackground,
   TouchableOpacity,
   StyleSheet,
@@ -25,13 +19,13 @@ Array(20)
   .forEach((_, i) => {
     rowSwipeAnimatedValues[`${i}`] = new Animated.Value(0);
   });
-
 const MovieWatchlist = ({ data }) => {
+  const [swipedRow, setSwipedRow] = useState(null);
   const [movieReleases, setMovieReleases] = useState([{ key: "1" }]);
   const release_year = data.release_date.split("-")[0];
   useEffect(() => {
     fetch(
-      `http://192.168.50.148:5000/getMovieReleasesByQuery?query=${data.original_title} ${release_year}`,
+      `http://www.devhomelab.info/getMovieReleasesByQuery?query=${data.original_title} ${release_year}`,
       {
         method: "GET",
         headers: {
@@ -75,7 +69,14 @@ const MovieWatchlist = ({ data }) => {
 
   const onSwipeValueChange = (swipeData) => {
     const { key, value } = swipeData;
-    rowSwipeAnimatedValues[key].setValue(Math.abs(value));
+    if (value < -60) {
+      // adjust the threshold as needed
+      setSwipedRow(key);
+    } else {
+      if (swipedRow === key) {
+        setSwipedRow(null);
+      }
+    }
   };
 
   const renderItem = (movieWatchlist) => (
@@ -149,33 +150,17 @@ const MovieWatchlist = ({ data }) => {
   );
 
   const renderHiddenItem = (data, rowMap) => (
-    <View style={{ alignItems: "center", flex: 1 }}>
+    <View style={{ alignItems: "center", flex: 1 }} key={data.item.key}>
       <TouchableOpacity
         style={stylesMovieList.backDeleteContinerStyle}
         onPress={() => deleteRow(rowMap, data.item.key)}
       >
-        <Animated.View
-          style={[
-            {
-              transform: [
-                {
-                  scale: rowSwipeAnimatedValues[data.item.key].interpolate({
-                    inputRange: [45, 60],
-                    outputRange: [0, 1],
-                    extrapolate: "clamp",
-                  }),
-                },
-              ],
-            },
-          ]}
-        >
-          <MaterialIcons
-            name="add-to-photos"
-            size={24}
-            color={Colors.whiteColor}
-            style={{ alignSelf: "center" }}
-          />
-        </Animated.View>
+        <MaterialIcons
+          name="add-to-photos"
+          size={24}
+          color={Colors.whiteColor}
+          style={{ alignSelf: "center" }}
+        />
       </TouchableOpacity>
     </View>
   );
@@ -195,6 +180,10 @@ const MovieWatchlist = ({ data }) => {
             onSwipeValueChange={onSwipeValueChange}
             contentContainerStyle={{ paddingTop: Sizes.fixPadding * 2.0 }}
             scrollEnabled={false}
+            removeClippedSubviews={true}
+            initialNumToRender={10}
+            maxToRenderPerBatch={10}
+            windowSize={10}
           />
         </View>
       )}
@@ -257,10 +246,10 @@ const stylesMovieList = StyleSheet.create({
     position: "absolute",
     top: 0,
     width: 60,
-    backgroundColor: Colors.primaryColor,
+    backgroundColor: "#288fde",
     borderTopRightRadius: Sizes.fixPadding - 5.0,
     borderBottomRightRadius: Sizes.fixPadding - 5.0,
-    right: 0,
+    right: 30,
   },
   playArrowIconWrapStyle: {
     width: 30.0,
