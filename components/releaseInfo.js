@@ -21,7 +21,7 @@ Array(20)
   });
 const MovieWatchlist = ({ data }) => {
   const [swipedRow, setSwipedRow] = useState(null);
-  const [movieReleases, setMovieReleases] = useState([{ key: "1" }]);
+  const [movieReleases, setMovieReleases] = useState([]);
   const release_year = data.release_date.split("-")[0];
   useEffect(() => {
     fetch(
@@ -140,7 +140,7 @@ const MovieWatchlist = ({ data }) => {
                   ...Fonts.primaryColor15Medium,
                 }}
               >
-                Download
+                Add to collection
               </Text>
             </View>
           </View>

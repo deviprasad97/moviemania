@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   SafeAreaView,
   View,
@@ -119,113 +119,14 @@ const gradientColorsList = [
   Colors.bodyBackColor,
 ];
 
-const movieWatchlist = [
-  {
-    key: "1",
-    movieImage: require("../../assets/images/popular/popular10.png"),
-    movieName: "See You Yesterday",
-    movieCategories: "Comedy, Drama",
-    movieLanguages: "English",
-    episodes: 10,
-    memoryTaken: "1.5GB",
-  },
-  {
-    key: "2",
-    movieImage: require("../../assets/images/popularMovies/movie7.png"),
-    movieName: "Dhamaka",
-    movieCategories: "Action, Drama",
-    movieLanguages: "English, Hindi",
-    episodes: 12,
-    memoryTaken: "2GB",
-  },
-  {
-    key: "3",
-    movieImage: require("../../assets/images/popular/popular14.png"),
-    movieName: "Unbelievable",
-    movieCategories: "Comedy, Drama",
-    movieLanguages: "English",
-    episodes: 8,
-    memoryTaken: "1.5GB",
-  },
-  {
-    key: "4",
-    movieImage: require("../../assets/images/popular/popular15.png"),
-    movieName: "I am not okay with this",
-    movieCategories: "Comedy, Drama",
-    movieLanguages: "English",
-    episodes: 12,
-    memoryTaken: "1.2GB",
-  },
-  {
-    key: "5",
-    movieImage: require("../../assets/images/popular/popular13.png"),
-    movieName: "Let The Battles Begin",
-    movieCategories: "Comedy, Drama, Action",
-    movieLanguages: "English",
-    episodes: 9,
-    memoryTaken: "1.5GB",
-  },
-  {
-    key: "6",
-    movieImage: require("../../assets/images/popular/popular11.png"),
-    movieName: "House of Cards",
-    movieCategories: "Action, Drama, Mystery",
-    movieLanguages: "English, Hindi",
-    episodes: 4,
-    memoryTaken: "2.2GB",
-  },
-  {
-    key: "7",
-    movieImage: require("../../assets/images/popular/popular9.png"),
-    movieName: "Rapture",
-    movieCategories: "Comedy, Drama, Adventure",
-    movieLanguages: "English, Hindi",
-    episodes: 10,
-    memoryTaken: "1.5GB",
-  },
-  {
-    key: "8",
-    movieImage: require("../../assets/images/popular/popular8.png"),
-    movieName: "In The Shadow of The Moon",
-    movieCategories: "Comedy, Drama",
-    movieLanguages: "English",
-    episodes: 9,
-    memoryTaken: "1.2GB",
-  },
-  {
-    key: "9",
-    movieImage: require("../../assets/images/popularMovies/movie8.png"),
-    movieName: "Big Bang Theory",
-    movieCategories: "Comedy, Drama",
-    movieLanguages: "English",
-    episodes: 12,
-    memoryTaken: "1.5GB",
-  },
-  {
-    key: "10",
-    movieImage: require("../../assets/images/popularMovies/movie9.png"),
-    movieName: "Stranger Things",
-    movieCategories: "Action, Drama",
-    movieLanguages: "English, Hindi",
-    episodes: 10,
-    memoryTaken: "2GB",
-  },
-];
-
-const rowSwipeAnimatedValues = {};
-Array(movieWatchlist.length + 1)
-  .fill("")
-  .forEach((_, i) => {
-    rowSwipeAnimatedValues[`${i}`] = new Animated.Value(0);
-  });
-
-const FirstRoute = () => (
-  <View style={[styles.scene, { backgroundColor: "transparent" }]}>
-    <Text>Cast |</Text>
-  </View>
+const FirstRoute = ({ props, data }) => (
+  <ScrollView style={[styles.scene, { backgroundColor: "transparent" }]}>
+    {console.log(data)}
+    <MovieWatchlist data={data}></MovieWatchlist>
+  </ScrollView>
 );
 
-const SecondRoute = () => (
+const SecondRoute = ({ data }) => (
   <View style={[styles.scene, { backgroundColor: "transparent" }]}>
     <Text>Crew</Text>
     <Divider orientation="vertical" width={50} color="#2089dc" />
@@ -245,15 +146,9 @@ const FourthRoute = () => (
   </View>
 );
 
-const renderScene = SceneMap({
-  release: FirstRoute,
-  cast: FirstRoute,
-  crew: SecondRoute,
-  details: ThirdRoute,
-  genres: FourthRoute,
-});
 const TabViewExample = ({ data }) => {
   const [index, setIndex] = React.useState(0);
+  const [height, setHeight] = useState(0);
   const [routes] = React.useState([
     { key: "release", title: "Releases" },
     { key: "cast", title: "Cast" },
@@ -262,6 +157,8 @@ const TabViewExample = ({ data }) => {
     { key: "genres", title: "Genres" },
   ]);
 
+  const animatedHeight = useRef(new Animated.Value(1000)).current;
+  
   const renderLabel = ({ route, focused }) => (
     <Text
       style={[
@@ -275,6 +172,45 @@ const TabViewExample = ({ data }) => {
     </Text>
   );
 
+  const renderScene = ({ route, data }) => {
+    switch (route.key) {
+      case 'release':
+        return <FirstRoute data={data}/>;
+      case 'cast':
+        return <SecondRoute data={data} />;
+      default:
+        return <ThirdRoute/>;
+    }
+  };
+
+  const _onTabChange = (index) => {
+    let newHeight = 100; // Default height
+
+    switch (index) {
+      case 0:
+        newHeight = 1000;
+        break;
+      case 1:
+        newHeight = 100;
+        break;
+      case 2:
+        newHeight = 100;
+        break;
+      case 3:
+        newHeight = 100;
+        break;
+      case 4:
+        newHeight = 100;
+        break;
+    }
+
+    Animated.spring(animatedHeight, {
+      toValue: newHeight,
+      friction: 8, // Adjust for a smoother spring effect
+      tension: 40, // Higher tension for a tighter spring
+      useNativeDriver: false, // Height can't be animated with native driver
+    }).start();
+  };
   const renderTabBar = (props) => (
     <TabBar
       {...props}
@@ -287,6 +223,8 @@ const TabViewExample = ({ data }) => {
         height: 38,
         marginBottom: 10,
         borderRadius: 5,
+        marginLeft: 15,  // Apply margin to TabBar only
+        marginRight: 15, // Apply margin to TabBar only
       }}
       labelStyle={styles.tabLabel}
       renderIndicator={(props) => {
@@ -317,20 +255,23 @@ const TabViewExample = ({ data }) => {
   );
 
   return (
+    <Animated.View style={{ height: animatedHeight }}>
     <TabView
+      lazy={true}
       navigationState={{ index, routes }}
-      renderScene={renderScene}
-      onIndexChange={setIndex}
+      renderScene={(props) => renderScene({ ...props, data })}
+      onIndexChange={(index) => {
+        setIndex(index);
+        _onTabChange(index);
+      }}
       renderTabBar={renderTabBar}
       swipeEnabled={false}
       style={{
         margin: 0,
         marginBottom: 10,
-        marginLeft: 15,
-        marginRight: 15,
-        height: 38,
       }}
     />
+    </Animated.View>
   );
 };
 
@@ -465,7 +406,7 @@ const MovieDetailScreen = ({ route, navigation }) => {
             {moviewInfo(data)}
             <HorizontalDivider />
             <TabViewExample data={data}></TabViewExample>
-            <MovieWatchlist data={data}></MovieWatchlist>
+            {/* <MovieWatchlist data={data}></MovieWatchlist> */}
             <HorizontalDivider />
             {clipsInfo()}
             <HorizontalDivider />

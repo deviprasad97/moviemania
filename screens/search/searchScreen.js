@@ -115,7 +115,7 @@ const suggestedMovieList = [
 ];
 
 const SearchScreen = ({ navigation }) => {
-  const [searchResults, setSearchResults] = useState([{ id: "1" }]);
+  const [searchResults, setSearchResults] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearchResultsViewEnabled, toggleSearchResultsView] = useState(false);
   const [selectedChipKey, setSelectedChipKey] = useState(0);
@@ -126,13 +126,10 @@ const SearchScreen = ({ navigation }) => {
   const chipsAnimation = useRef(new Animated.Value(0)).current;
 
   const [chipData, setChipData] = useState([
-    { key: 0, label: "Angular" },
-    { key: 1, label: "jQuery" },
-    { key: 2, label: "Polymer" },
-    { key: 3, label: "React" },
-    { key: 4, label: "Php" },
-    { key: 5, label: "Golang" },
-    { key: 6, label: "More" },
+    { key: 0, label: "Movies" },
+    { key: 1, label: "TV" },
+    { key: 2, label: "Documentary" },
+    { key: 3, label: "All" },
   ]);
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: Colors.bodyBackColor }}>
@@ -623,7 +620,7 @@ const MovieWatchlist = ({ data, navigation }) => {
             marginTop: Sizes.fixPadding - 5.0,
           }}
         >
-          No releases yet
+          No Search Results yet
         </Text>
       </View>
     );
